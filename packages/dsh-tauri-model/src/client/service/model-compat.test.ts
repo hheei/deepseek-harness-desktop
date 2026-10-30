@@ -58,11 +58,25 @@ describe('toggleThinkingLevel', () => {
   it('adds a level with its own value, and maps off to null', () => {
     expect(toggleThinkingLevel({}, 'high', true)).toEqual({ high: 'high' })
     expect(toggleThinkingLevel({ high: 'high' }, 'off', true)).toEqual({ high: 'high', off: null })
+    expect(toggleThinkingLevel({}, 'off', true, 'none')).toEqual({ off: 'none' })
   })
 
   it('removes a level and reports an empty table as false', () => {
     expect(toggleThinkingLevel({ off: null, high: 'high' }, 'off', false)).toEqual({ high: 'high' })
     expect(toggleThinkingLevel({ high: 'high' }, 'high', false)).toBe(false)
+  })
+
+  it('restores custom wire values when re-enabling a level', () => {
+    const initial = { extra: 'vendor-extra', high: 'high' }
+    const withoutExtra = toggleThinkingLevel(initial, 'extra', false)
+    expect(withoutExtra).toEqual({ high: 'high' })
+    const restored = toggleThinkingLevel(withoutExtra, 'extra', true, initial.extra)
+    expect(restored).toEqual({ high: 'high', extra: 'vendor-extra' })
+  })
+
+  it('collapses to false when the last level is removed without off', () => {
+    const initial = { high: 'high' }
+    expect(toggleThinkingLevel(initial, 'high', false)).toBe(false)
   })
 
   it('never mutates its input', () => {

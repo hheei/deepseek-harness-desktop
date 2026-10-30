@@ -1,3 +1,5 @@
+import { presetFor } from './model-presets'
+
 export type ModelCompatDraft = Record<string, unknown>
 
 export const THINKING_LEVELS = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const
@@ -45,23 +47,31 @@ export function supportsThinking(model: ModelCompatDraft): boolean {
   return Object.keys(thinkingEffortsOf(model)).some(level => level !== 'off')
 }
 
+export function isThinkingEnabled(model: ModelCompatDraft): boolean {
+  return model.reasoningEfforts !== false && model.reasoningEfforts !== undefined
+}
+
 export function enableThinking(model: ModelCompatDraft): Record<string, string | null> {
   const current = thinkingEffortsOf(model)
   const graded = Object.keys(current).filter(level => level !== 'off')
-  return graded.length === 0 ? { ...DEFAULT_THINKING_EFFORTS } : current
+  if (graded.length > 0)
+    return current
+  const id = typeof model.id === 'string' ? model.id : ''
+  const preset = presetFor(id)
+  if (preset?.reasoningEfforts && typeof preset.reasoningEfforts === 'object')
+    return { ...preset.reasoningEfforts }
+  return { ...DEFAULT_THINKING_EFFORTS }
 }
 
-/**
- * 取消到空表时写 `false`（显式「不支持思考」）而不是空对象：空表会被 schema 判为非法声明。
- */
 export function toggleThinkingLevel(
   efforts: Readonly<Record<string, string | null>>,
   level: string,
   enabled: boolean,
+  wireValue?: string | null,
 ): Record<string, string | null> | false {
   const next = { ...efforts }
   if (enabled)
-    next[level] = level === 'off' ? null : level
+    next[level] = wireValue !== undefined ? wireValue : (level === 'off' ? null : level)
   else
     delete next[level]
   return Object.keys(next).length === 0 ? false : next

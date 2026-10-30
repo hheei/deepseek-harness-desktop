@@ -77,6 +77,14 @@
     "dsh-tauri-ui": "workspace:*",
     "h3": "catalog:"
   },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-ai": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/node": "catalog:types",
     "dsh-tauri-tsdown": "workspace:*",

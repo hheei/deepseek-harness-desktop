@@ -1,4 +1,4 @@
-import type { PresetRow } from '../../shared/model-presets'
+import type { ModelCapabilityPreset, PresetTable } from '../../shared/model-presets'
 import { getPresets } from '../apis'
 import { setPresetTable } from './model-presets'
 
@@ -8,17 +8,14 @@ export type PresetsLoad
 
 let pending: Promise<PresetsLoad> | undefined
 
-function toRows(input: Record<string, readonly number[]> | undefined): Record<string, PresetRow> {
-  const rows: Record<string, PresetRow> = {}
+function toPresetTable(input: Record<string, unknown> | undefined): PresetTable {
+  const table: PresetTable = {}
   for (const [key, value] of Object.entries(input ?? {})) {
-    const [vision, reasoning, maxInput, maxOutput] = value
-    if (typeof vision !== 'number' || typeof reasoning !== 'number')
+    if (typeof value !== 'object' || value === null)
       continue
-    if (typeof maxInput !== 'number' || typeof maxOutput !== 'number')
-      continue
-    rows[key] = [vision, reasoning, maxInput, maxOutput]
+    table[key] = value as ModelCapabilityPreset
   }
-  return rows
+  return table
 }
 
 async function load(): Promise<PresetsLoad> {
@@ -26,11 +23,11 @@ async function load(): Promise<PresetsLoad> {
     const response = await getPresets()
     if (response.error !== undefined)
       return { ok: false, error: response.error }
-    const rows = toRows(response.presets)
-    const count = Object.keys(rows).length
+    const table = toPresetTable(response.presets as Record<string, unknown> | undefined)
+    const count = Object.keys(table).length
     if (count === 0)
       return { ok: false, error: 'the preset dataset carried no chat models' }
-    setPresetTable(rows)
+    setPresetTable(table)
     return { ok: true, count, stale: response.stale === true }
   }
   catch (error) {

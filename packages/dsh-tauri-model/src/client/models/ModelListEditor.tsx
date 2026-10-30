@@ -8,6 +8,8 @@ import { Plus } from 'dsh-tauri-ui/client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useModelRowKeys } from '../hooks/use-model-row-keys'
 import { TEMPLATE_COMPAT_PROTOCOL } from '../service/model-compat'
+import { presetFor } from '../service/model-presets'
+import { ensurePresets } from '../service/presets'
 import { AutoConfigAllButton, ModelCompatFields, modelExtrasTranslate, ModelFetchConfigButton } from '../ui/model-extras'
 import { formatCapacity, parseCapacity } from './DeepSeekModelsEditor.tsx'
 import { ModelRow } from './ModelRow.tsx'
@@ -60,14 +62,31 @@ function capacitySpelling(value: number | undefined): string {
   return value === undefined ? '' : formatCapacity(value)
 }
 
+function applyPresetDefaults(draft: ModelDraft, id: string): ModelDraft {
+  const preset = presetFor(id)
+  if (preset === undefined)
+    return draft
+  const patchObj: Record<string, unknown> = {}
+  if (draft.contextWindow === undefined && preset.contextWindow !== undefined)
+    patchObj.contextWindow = preset.contextWindow
+  if (draft.maxTokens === undefined && preset.maxTokens !== undefined)
+    patchObj.maxTokens = preset.maxTokens
+  if (draft.input === undefined && preset.input !== undefined)
+    patchObj.input = [...preset.input]
+  if (draft.reasoningEfforts === undefined && preset.reasoningEfforts !== undefined)
+    patchObj.reasoningEfforts = preset.reasoningEfforts === false ? false : { ...preset.reasoningEfforts }
+  return Object.keys(patchObj).length === 0 ? draft : { ...draft, ...patchObj }
+}
+
 function adopt(candidate: LlmDiscoveredModel): ModelDraft {
-  return {
+  const base: ModelDraft = {
     id: candidate.id,
     ...candidate.name === undefined ? {} : { name: candidate.name },
     ...candidate.contextWindow === undefined ? {} : { contextWindow: candidate.contextWindow },
     ...candidate.maxTokens === undefined ? {} : { maxTokens: candidate.maxTokens },
     ...candidate.inputModalities === undefined ? {} : { input: [...candidate.inputModalities] },
   }
+  return applyPresetDefaults(base, candidate.id)
 }
 
 export function ModelListEditor(props: ModelListEditorProps): ReactNode {
@@ -75,6 +94,9 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
   const rowKeys = useModelRowKeys(models)
   const { catalogProvider } = props
   const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    void ensurePresets()
+  }, [])
   useEffect(() => {
     onBusyChange(busy)
   }, [busy, onBusyChange])
@@ -148,6 +170,18 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
         Object.entries({ ...model, ...next }).filter(([key]) => !cleared.has(key)),
       )
     }))
+  }
+
+  const fillPreset = (index: number, id: string): void => {
+    const trimmed = id.trim()
+    if (trimmed.length === 0)
+      return
+    const current = models[index]
+    if (current === undefined)
+      return
+    const next = applyPresetDefaults(current, trimmed)
+    if (next !== current)
+      onChange(models.map((row, at) => at === index ? next : row))
   }
 
   const editCapacity = (index: number, field: CapacityField, text: string): void => {
@@ -358,6 +392,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
               onChange: (text) => { editCapacity(index, 'maxTokens', text) },
             }}
             onFieldChange={(field, value) => { patch(index, { [field]: value }) }}
+            onIdBlur={(value) => { fillPreset(index, value) }}
             onChange={(next) => { onChange(models.map((row, at) => at === index ? next : row)) }}
             onToggle={() => { toggleExpanded(index) }}
             trailing={(

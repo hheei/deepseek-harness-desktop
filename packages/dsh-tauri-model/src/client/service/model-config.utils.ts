@@ -42,15 +42,17 @@ export function mergeModelCards(
         patch.contextWindow = found.contextWindow
       if (found.maxTokens !== undefined && (overwrite || model.maxTokens === undefined))
         patch.maxTokens = found.maxTokens
+      if (found.inputModalities !== undefined && (overwrite || model.input === undefined))
+        patch.input = [...found.inputModalities]
     }
     if (patch.contextWindow === undefined && model.contextWindow === undefined && preset?.contextWindow !== undefined)
       patch.contextWindow = preset.contextWindow
     if (patch.maxTokens === undefined && model.maxTokens === undefined && preset?.maxTokens !== undefined)
       patch.maxTokens = preset.maxTokens
-    if (preset?.input !== undefined && (overwrite || model.input === undefined))
+    if (patch.input === undefined && preset?.input !== undefined && (overwrite || model.input === undefined))
       patch.input = [...preset.input]
-    if (preset?.efforts !== undefined && (overwrite || model.reasoningEfforts === undefined))
-      patch.reasoningEfforts = { ...preset.efforts }
+    if (preset?.reasoningEfforts !== undefined && (overwrite || model.reasoningEfforts === undefined))
+      patch.reasoningEfforts = preset.reasoningEfforts === false ? false : { ...preset.reasoningEfforts }
     if (Object.keys(patch).length === 0) {
       if (found === undefined && id.length > 0)
         undisclosed.push(id)

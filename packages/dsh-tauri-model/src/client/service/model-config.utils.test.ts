@@ -135,7 +135,7 @@ describe('mergeModelCards with presets', () => {
 
   it('writes the graded levels for a reasoning model', () => {
     const merged = mergeModelCards([{ id: 'o3' }], [found('o3', { contextWindow: 200000 })])
-    expect(merged.models[0]?.reasoningEfforts).toEqual({ off: null, low: 'low', medium: 'medium', high: 'high' })
+    expect(merged.models[0]?.reasoningEfforts).toEqual({ low: 'low', medium: 'medium', high: 'high' })
   })
 
   it('keeps the capabilities a row already declares on a single-row fill', () => {
@@ -149,7 +149,7 @@ describe('mergeModelCards with presets', () => {
     const row = { id: 'o3', input: ['text'], reasoningEfforts: { off: null, low: 'low' } }
     const reconfigured = mergeModelCards([row], [], { targets: ['o3'], overwrite: true }).models[0]
     expect(reconfigured?.input).toEqual(['text', 'image'])
-    expect(reconfigured?.reasoningEfforts).toEqual({ off: null, low: 'low', medium: 'medium', high: 'high' })
+    expect(reconfigured?.reasoningEfforts).toEqual({ low: 'low', medium: 'medium', high: 'high' })
   })
 
   it('never rewrites a capability the table did not state as unsupported', () => {
